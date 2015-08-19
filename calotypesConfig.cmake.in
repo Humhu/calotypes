@@ -1,0 +1,17 @@
+# - Config file for the calotypes package
+# It defines the following variables
+#  calotypes_INCLUDE_DIRS - include directories for calotypes
+#  calotypes_LIBRARIES    - libraries to link against
+#  calotypes_DEFINITIONS  - define flags for calotypes
+
+get_filename_component(calotypes_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+include("${calotypes_CMAKE_DIR}/calotypesTargets.cmake")
+get_filename_component(calotypes_INCLUDE_DIRS "${calotypes_CMAKE_DIR}/include/" ABSOLUTE)
+list(APPEND calotypes_INCLUDE_DIRS "@calotypes_INCLUDES@")
+
+#set(calotypes_LIBRARIES "@calotypes_LIBS@")
+#list(APPEND calotypes_LIBRARIES "${calotypes_CMAKE_DIR}/lib/libcalotypes.so")
+set(calotypes_LIBRARIES "${calotypes_CMAKE_DIR}/lib/libcalotypes.so")
+
+set(calotypes_DEFINITIONS "@calotypes_DEFS@")
