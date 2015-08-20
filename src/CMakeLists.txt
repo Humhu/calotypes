@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
-set( SRCS
-     ReprojectionEvaluation.cpp )
+set( SRCS CalibrationLog.cpp
+		  CameraCalibration.cpp )
 
 add_library( calotypes SHARED ${SRCS} )
 
