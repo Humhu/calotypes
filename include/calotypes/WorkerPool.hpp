@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/function.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/condition_variable.hpp>
 
@@ -15,7 +16,7 @@ public:
 	typedef boost::function<void()> Job;
 		
 	WorkerPool( unsigned int n = 4 )
-	: numWorkers( n ) {}
+	: numWorkers( n ), numActive( 0 ) {}
 		
 	~WorkerPool()
 	{
@@ -46,12 +47,13 @@ public:
 		workerThreads.join_all();
 	}
 
+	/*! \brief Waits until job queue is empty and no threads are active. */
 	void WaitOnJobs()
 	{
 		Lock lock( mutex );
-		while( !jobQueue.empty() )
+		while( numActive > 0 || !jobQueue.empty() )
 		{
-			hasNoJobs.wait( lock );
+			allThreadsDone.wait( lock );
 		}
 	}
 	
@@ -63,7 +65,8 @@ protected:
 	unsigned int numWorkers;
 	std::queue<Job> jobQueue;
 	boost::condition_variable_any hasJobs;
-	boost::condition_variable_any hasNoJobs;
+	boost::condition_variable_any allThreadsDone;
+	unsigned int numActive;
 	boost::thread_group workerThreads;
 	
 	void WorkerLoop()
@@ -81,15 +84,19 @@ protected:
 				
 				Job job = jobQueue.front();
 				jobQueue.pop();
-				if( jobQueue.size() == 0 )
-				{
-					hasNoJobs.notify_all();
-				}
+				numActive++;
 				
 				lock.unlock(); // Make sure we unlock or else this becomes serial!
-				
 				// TODO Catch exceptions in job?
 				job();
+				lock.lock();
+				
+				numActive--;
+				if( numActive == 0 )
+				{
+					allThreadsDone.notify_all();
+				}
+				
 			}
 		}
 		catch( boost::thread_interrupted e ) { return; }

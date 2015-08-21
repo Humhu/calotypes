@@ -31,6 +31,7 @@ find_package( Boost REQUIRED
 			COMPONENTS filesystem 
 					   system 
 					   random
+					   thread
 )
 include_directories( ${Boost_INCLUDE_DIRS} )
 list(APPEND calotypes_LIBS ${Boost_LIBRARIES} )
