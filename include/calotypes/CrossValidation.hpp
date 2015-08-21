@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/function.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace calotypes
 {
@@ -13,8 +14,23 @@ class CrossValidator
 public:
 	
 	typedef std::vector<Data> Dataset;
-	typedef boost::function<Model(const Dataset&)> TrainFunc;
-	typedef boost::function<double(const Model&, const Dataset&)> TestFunc;
+	
+	struct ValidationResult
+	{
+		Model model;
+		unsigned int foldIndex;
+		double trainingError;
+		double testError;
+		boost::posix_time::time_duration trainingTime;
+	};
+	
+	/*! \brief Training functions take a dataset, assign a model, and return the
+	 * training time error. */
+	typedef boost::function<double (Model&, const Dataset&)> TrainFunc;
+	
+	/*! \brief Testing functions take a model and dataset and return the test
+	 * time error. */
+	typedef boost::function<double (const Model&, const Dataset&)> TestFunc;
 	
 	/*! \brief Create a cross validator with specified train and test function. */
 	CrossValidator( TrainFunc train, TestFunc test )
@@ -22,24 +38,32 @@ public:
 
 	/*! \brief Performs numFolds-fold cross validation. Returns models, error
 	 * for each fold, and the average error. */
-	double PerformCrossValidation( const Dataset& data, unsigned int numFolds,
-									std::vector<Model>& models,
-									std::vector<double>& errors )
+	double CrossValidate( const Dataset& data, unsigned int numFolds,
+								   std::vector<ValidationResult>& results )
 	{
-		models.resize( numFolds );
-		errors.resize( numFolds );
+		results.resize( numFolds );
 		
 		double acc = 0;
-		Dataset testSet, trainSet;
 		for( unsigned int foldInd = 0; foldInd < numFolds; foldInd++ )
 		{
-			GetFold( data, numFolds, foldInd, testSet, trainSet );
-			models[ foldInd ] = trainer( trainSet );
-			errors[ foldInd ] = tester( models[ foldInd ], testSet );
-			acc += errors[ foldInd ];
+			PerformCrossValidation( data, numFolds, foldInd, results[foldInd] );
+			acc += results[ foldInd ].testError;
 		}
 		return acc / numFolds;
 		
+	}
+	
+	void PerformCrossValidation( const Dataset& data, unsigned int numFolds,
+								 unsigned int foldInd, ValidationResult& result )
+	{
+		Dataset testSet, trainSet;
+		GetFold( data, numFolds, foldInd, testSet, trainSet );
+		boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+		result.trainingError = trainer( result.model, trainSet );
+		boost::posix_time::ptime after = boost::posix_time::microsec_clock::local_time();
+		result.trainingTime = after - now;
+		result.testError = tester( result.model, testSet );
+		return;
 	}
 	
 	/*! \brief Splits a data into folds and returns the test and train set
@@ -80,6 +104,7 @@ private:
 	
 	TrainFunc trainer;
 	TestFunc tester;
+	
 };
 	
 } // end namespace calotypes

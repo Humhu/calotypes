@@ -4,17 +4,16 @@
 #include <boost/bind.hpp>
 #include <Eigen/Dense>
 
+#include "calotypes/WorkerPool.h"
 #include "calotypes/CrossValidation.hpp"
 #include "calotypes/CameraCalibration.h"
 #include "calotypes/CalibrationLog.h"
-
-#include "calotypes/RandomDataSelector.hpp"
 
 using namespace calotypes;
 
 int main( int argc, char** argv )
 {
-	
+
 	if( argc < 2 )
 	{
 		std::cerr << "Please specify config file path." << std::endl;
@@ -33,10 +32,6 @@ int main( int argc, char** argv )
 		data.push_back( datum );
 	}
 	
-	std::vector<CameraTrainingData> subset;
-	RandomDataSelector selector;
-	selector.SelectData( data, 20, subset );
-	
 	CameraTrainingParams params;
 	params.optimizeAspectRatio = true;
 	params.optimizePrincipalPoint = true;
@@ -52,7 +47,7 @@ int main( int argc, char** argv )
 	std::vector< CameraCV::ValidationResult > results;
 	unsigned int numFolds = 4;
 	std::cout << "Performing " << numFolds << "-fold cross validation..." << std::endl;
-	double mse = crossValidator.CrossValidate( subset, numFolds, results );
+	double mse = crossValidator.CrossValidate( data, numFolds, results );
 	std::cout << "CV completed with MSE: " << mse << std::endl;
 	std::cout << "Errors: " << std::endl;
 	for( unsigned int i = 0; i < numFolds; i++ )

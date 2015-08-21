@@ -27,8 +27,13 @@ set(calotypes_VERSION "${calotypes_VERSION_MAJOR}.${calotypes_VERSION_MINOR}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # Boost utils
-find_package( Boost REQUIRED )
+find_package( Boost REQUIRED
+			COMPONENTS filesystem 
+					   system 
+					   random
+)
 include_directories( ${Boost_INCLUDE_DIRS} )
+list(APPEND calotypes_LIBS ${Boost_LIBRARIES} )
 
 # OpenCV for camera interface, looks for a symlink
 find_package(OpenCV)

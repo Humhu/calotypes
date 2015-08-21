@@ -50,10 +50,10 @@ namespace calotypes
 	std::ostream& operator<<( std::ostream& os, const CameraModel& model );
 	
 	/*! \brief Calibrate a camera model with the specified calibration config. */
-	CameraModel TrainCameraModel( const std::vector<CameraTrainingData>& data,
-								  const cv::Size& imgSize,
-								  CameraTrainingParams params = CameraTrainingParams() );
+	double TrainCameraModel( CameraModel& model, const std::vector<CameraTrainingData>& data,
+								  const cv::Size& imgSize, CameraTrainingParams params = CameraTrainingParams() );
 
+	/*! \brief Test the camera by estimated reprojection error. */
 	double TestCameraModel( const CameraModel& model, const std::vector<CameraTrainingData>& data );
 	
 }

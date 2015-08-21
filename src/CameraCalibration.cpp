@@ -45,11 +45,10 @@ CameraTrainingParams::CameraTrainingParams()
 	{}
 
 // TODO TermCriteria
-CameraModel TrainCameraModel( const std::vector<CameraTrainingData>& data,
-							  const cv::Size& imgSize,
-							  CameraTrainingParams params )
+double TrainCameraModel( CameraModel& model, const std::vector<CameraTrainingData>& data,
+						 const cv::Size& imgSize, CameraTrainingParams params )
 {
-	CameraModel model( params );
+	model = CameraModel( params );
 	
 	int flags = 0;
 	
@@ -84,7 +83,7 @@ CameraModel TrainCameraModel( const std::vector<CameraTrainingData>& data,
 	}
 	cv::calibrateCamera( objectPoints, imagePoints, imgSize, model.cameraMatrix, 
 						 model.distortionCoefficients, rvecs, tvecs, flags );
-	return model;
+	return TestCameraModel( model, data );
 }
 
 double TestCameraModel( const CameraModel& model, const std::vector<CameraTrainingData>& data )

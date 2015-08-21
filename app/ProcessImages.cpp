@@ -1,11 +1,13 @@
 #include <opencv2/opencv.hpp>
 #include <yaml-cpp/yaml.h>
 #include <boost/foreach.hpp>
+#include <boost/filesystem.hpp>
 
 #include "calotypes/CalibrationLog.h"
 #include "calotypes/PlanarGridStructure.h"
 
 using namespace calotypes;
+namespace bfs = boost::filesystem;
 
 int main( int argc, char** argv )
 {
@@ -25,7 +27,33 @@ int main( int argc, char** argv )
 	PlanarGridStructure patternGrid( cbRows, cbCols, cbDim );
 	
 	typedef std::vector< std::string > Strings;
-	Strings imagePaths = config["images"].as< Strings >();
+	Strings imagePaths;
+	if( config["images"] )
+	{
+		imagePaths = config["images"].as< Strings >();
+	}
+	else if( config["image_directory"] )
+	{
+		std::string dir = config["image_directory"].as<std::string>();
+		if( !bfs::exists( dir ) || !bfs::is_directory( dir ) )
+		{
+			throw std::runtime_error( "Invalid directory " + dir );
+		}
+		
+		bfs::directory_iterator iter( dir ), endIter;
+		while( iter != endIter )
+		{
+			bfs::directory_entry entry = *iter;
+			iter++;
+			if( !is_regular_file( entry.path() ) ) { continue; }
+			imagePaths.push_back( entry.path().string() );
+		}
+	}
+	else
+	{
+		std::cout << "Please specify images or image_directory" << std::endl;
+		return -1;
+	}
 	
 	std::string outputPath = config["output_path"].as<std::string>();
 	CalibrationLogWriter writer( outputPath );
