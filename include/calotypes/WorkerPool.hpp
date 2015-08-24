@@ -6,10 +6,12 @@
 
 #include <queue>
 
-namespace calotypes {
+namespace calotypes 
+{
 
 /*! \brief An asynchronous worker thread pool. */
-class WorkerPool {
+class WorkerPool 
+{
 public:
 
 	typedef std::shared_ptr<WorkerPool> Ptr;
@@ -71,7 +73,8 @@ protected:
 	
 	void WorkerLoop()
 	{
-		try {
+		try 
+		{
 			while( true ) 
 			{
 				boost::this_thread::interruption_point();

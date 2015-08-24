@@ -15,6 +15,11 @@ target_link_libraries( process_images
 					   calotypes
 					   ${calotypes_LIBS} )
 
+add_executable( shuffle_log ShuffleLog.cpp )
+target_link_libraries( shuffle_log
+					   calotypes
+					   ${calotypes_LIBS} )
+					   
 install( TARGETS simple_calibration
 		 RUNTIME DESTINATION bin
 )

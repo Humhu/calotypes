@@ -16,7 +16,11 @@ using namespace calotypes;
 
 void PrintHelp()
 {
-	std::cout << "threaded_calibration [-d datalogPath] [-o outputPath] [-k num folds(4)]" << std::endl;
+	std::cout << "threaded_calibration: Perform cross-validated camera calibration" << std::endl;
+	std::cout << "Arguments:" << std::endl;
+	std::cout << "[-d datalogPath] The path to a text file containing the detected corners" << std::endl;
+	std::cout << "[-o outputPath] The output log to write cross-validation stats to" << std::endl;
+	std::cout << "[-k numFolds (4)] The number of folds for cross-validation" << std::endl;
 }
 
 int main( int argc, char** argv )
@@ -40,6 +44,7 @@ int main( int argc, char** argv )
 				break;
 			case 'k':
 				numFolds = strtol( optarg, NULL, 10 );
+				break;
 			case '?':
                 if (isprint (optopt)) 
 				{
