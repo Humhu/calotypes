@@ -32,7 +32,8 @@ std::ostream& operator<<( std::ostream& os, const CameraModel& model )
 	Eigen::Map< const Eigen::MatrixXd > distortionMap( model.distortionCoefficients.ptr<double>(),
 												 model.distortionCoefficients.total(), 1 );
 	os << "fx: " << cameraMap(0,0) << " fy: " << cameraMap(1,1) 
-	   << " px: " << cameraMap(0,2) << " py: " << cameraMap(1,2) << std::endl;
+	// TODO These are actually different column/row major, but hack it for now
+	   << " px: " << cameraMap(2,0) << " py: " << cameraMap(2,1) << std::endl;
 	os << "distortion: " << distortionMap.transpose();
 	return os;
 }
@@ -44,10 +45,22 @@ CameraTrainingParams::CameraTrainingParams()
 	enableTangentialDistortion( false ), enableThinPrism( false )
 	{}
 
+double SubsetTrainCameraModel( CameraModel& model, const std::vector<CameraTrainingData>& data,
+							   const cv::Size& imgSize, DataSelector<CameraTrainingData>& selector,
+							   unsigned int subsetSize, CameraTrainingParams params )
+{
+	std::vector<CameraTrainingData> subset;
+	selector.SelectData( data, subsetSize, subset );
+	return TrainCameraModel( model, subset, imgSize, params );
+}
+	
 // TODO TermCriteria
 double TrainCameraModel( CameraModel& model, const std::vector<CameraTrainingData>& data,
 						 const cv::Size& imgSize, CameraTrainingParams params )
 {
+	
+	std::cout << "Training on " << data.size() << " datapoints." << std::endl;
+	
 	model = CameraModel( params );
 	
 	int flags = 0;
@@ -88,7 +101,11 @@ double TrainCameraModel( CameraModel& model, const std::vector<CameraTrainingDat
 
 double TestCameraModel( const CameraModel& model, const std::vector<CameraTrainingData>& data )
 {
-	double acc = 0;
+	
+	std::cout << "Testing on " << data.size() << " datapoints." << std::endl;
+	
+	double worst = -std::numeric_limits<double>::infinity();
+//  	double acc = 0;
 	unsigned int count = 0;
 	std::vector< cv::Point2f > predictions;
 	cv::Mat rotation, translation;
@@ -110,13 +127,17 @@ double TestCameraModel( const CameraModel& model, const std::vector<CameraTraini
 		cv::projectPoints( data[i].objectPoints, rotation, translation,
 						   model.cameraMatrix, model.distortionCoefficients, predictions );
 		count += predictions.size();
+		
 		for( unsigned int j = 0; j < predictions.size(); j++ )
 		{
 			cv::Point2f diff = data[i].imagePoints[j] - predictions[j];
-			acc += std::sqrt( diff.x*diff.x + diff.y*diff.y );
+// 			acc += std::sqrt( diff.x*diff.x + diff.y*diff.y );
+ 			double err = std::sqrt( diff.x*diff.x + diff.y*diff.y );
+			if( err > worst ) { worst = err; }
 		}
 	}
-	return acc / count;
+// 	return acc / count;
+	return worst;
 }
 	
 } // end namespace calotypes

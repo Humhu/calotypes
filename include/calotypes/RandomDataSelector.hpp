@@ -11,7 +11,7 @@ namespace calotypes
 {
 
 class RandomDataSelector
-: public CameraDataSelector
+: public DataSelector<CameraTrainingData>
 {
 public:
 	

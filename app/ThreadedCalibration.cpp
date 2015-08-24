@@ -21,6 +21,7 @@ void PrintHelp()
 	std::cout << "[-d datalogPath] The path to a text file containing the detected corners" << std::endl;
 	std::cout << "[-o outputPath] The output log to write cross-validation stats to" << std::endl;
 	std::cout << "[-k numFolds (4)] The number of folds for cross-validation" << std::endl;
+	std::cout << "[-n numData (30)] Number of images to select from each fold" << std::endl;
 }
 
 int main( int argc, char** argv )
@@ -28,8 +29,9 @@ int main( int argc, char** argv )
 	
 	std::string configPath, outputPath;
 	unsigned int numFolds = 4;
+	unsigned int numData = 30;
 	char c;
-	while( (c = getopt( argc, argv, "hd:o:k:")) != -1 )
+	while( (c = getopt( argc, argv, "hd:o:k:n:")) != -1 )
 	{
 		switch( c )
 		{
@@ -44,6 +46,9 @@ int main( int argc, char** argv )
 				break;
 			case 'k':
 				numFolds = strtol( optarg, NULL, 10 );
+				break;
+			case 'n':
+				numData = strtol( optarg, NULL, 10 );
 				break;
 			case '?':
                 if (isprint (optopt)) 
@@ -78,29 +83,27 @@ int main( int argc, char** argv )
 		data.push_back( datum );
 	}
 	
-	std::vector<CameraTrainingData> subset;
-	RandomDataSelector selector;
-// 	selector.SelectData( data, data.size(), subset );
-	subset = data;
-	
 	CameraTrainingParams params;
 	params.optimizeAspectRatio = true;
 	params.optimizePrincipalPoint = true;
 	params.enableRadialDistortion[0] = true;
-	params.enableRadialDistortion[1] = false;
+// 	params.enableRadialDistortion[1] = true;
+// 	params.enableRadialDistortion[2] = true;
+// 	params.enableTangentialDistortion = true;
 	
 	typedef CrossValidationTask< CameraModel, CameraTrainingData > CameraCV;
-	CameraCV::TrainFunc trainer = boost::bind( &TrainCameraModel, _1, _2,
-											   imageSize, params ); // HACK heh
-	CameraCV::TestFunc tester = boost::bind( &TestCameraModel, _1, _2 );
-	CameraCV crossValidation( trainer, tester, subset, 4 );
 	
 	WorkerPool pool( 4 );
 	pool.StartWorkers();
 	
 	std::cout << "Performing " << numFolds << "-fold cross validation..." << std::endl;
+	RandomDataSelector selector;
+	CameraCV::TestFunc tester = boost::bind( &TestCameraModel, _1, _2 );
+	CameraCV::TrainFunc trainer = boost::bind( &SubsetTrainCameraModel, _1, _2,
+											imageSize, boost::ref(selector), numData, params ); // HACK heh
+	CameraCV crossValidation( trainer, tester, data, numFolds );
 	for( unsigned int i = 0; i < numFolds; i++ )
-	{
+	{	
 		WorkerPool::Job job = boost::bind( &CameraCV::ValidateFold, &crossValidation, i );
 		pool.EnqueueJob( job );
 	}

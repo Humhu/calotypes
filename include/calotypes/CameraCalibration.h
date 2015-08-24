@@ -1,8 +1,8 @@
 #pragma once
 
 #include <opencv2/core.hpp>
-
 #include <iostream>
+#include "calotypes/DataSelector.hpp"
 
 namespace calotypes
 {
@@ -48,6 +48,10 @@ namespace calotypes
 	};
 	
 	std::ostream& operator<<( std::ostream& os, const CameraModel& model );
+	
+	double SubsetTrainCameraModel( CameraModel& model, const std::vector<CameraTrainingData>& data,
+								   const cv::Size& imgSize, DataSelector<CameraTrainingData>& selector,
+								   unsigned int subsetSize, CameraTrainingParams params = CameraTrainingParams() );
 	
 	/*! \brief Calibrate a camera model with the specified calibration config. */
 	double TrainCameraModel( CameraModel& model, const std::vector<CameraTrainingData>& data,
