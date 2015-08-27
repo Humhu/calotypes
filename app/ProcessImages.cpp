@@ -49,6 +49,7 @@ int main( int argc, char** argv )
 				break;
 			case 'o':
 				outputPath.assign( optarg );
+				break;
 			case '?':
                 return -1;
             default:
@@ -58,6 +59,8 @@ int main( int argc, char** argv )
 	}
 
 	PlanarGridStructure patternGrid( cbRows, cbCols, cbDim );
+	
+	if( *imageDir.end() != '/' ) { imageDir += "/"; }
 	
 	if( !bfs::exists( imageDir ) || !bfs::is_directory( imageDir ) )
 	{
