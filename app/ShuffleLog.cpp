@@ -49,14 +49,6 @@ int main ( int argc, char** argv )
 				numCopies = strtol( optarg, NULL, 10 );
 				break;
 			case '?':
-                if (isprint (optopt)) 
-				{
-                    std::cerr << "Unknown option -" << optopt << std::endl;
-                } 
-                else 
-				{
-                    std::cerr << "Unknown option character " << optopt << std::endl;
-                }
                 return -1;
             default:
 				std::cerr << "Unrecognized option." << std::endl;
@@ -70,18 +62,11 @@ int main ( int argc, char** argv )
 	boost::split( splits, inputPath, boost::is_any_of( "." ) );
 	std::string extension = splits[ splits.size()-1 ];
 	
-	struct DetectionPoint
+	std::vector<CameraTrainingData> points;
+	CameraTrainingData data;
+	while( reader.GetNext( data ) )
 	{
-		CameraTrainingData data;
-		std::string path;
-		cv::Size imageSize;
-	};
-	
-	std::vector<DetectionPoint> points;
-	DetectionPoint point;
-	while( reader.GetNext( point.path, point.imageSize, point.data ) )
-	{
-		points.push_back( point );
+		points.push_back( data );
 	}
 	
 
@@ -99,8 +84,7 @@ int main ( int argc, char** argv )
 		CalibrationLogWriter writer( ss.str() );
 		for( unsigned int j = 0; j < points.size(); j++ )
 		{
-			const DetectionPoint& pt = points[ inds[j] ];
-			writer.WriteNext( pt.path, pt.imageSize, pt.data );
+			writer.WriteNext( points[ inds[j] ] );
 		}
 	}
 	

@@ -1,61 +1,79 @@
 #include <opencv2/opencv.hpp>
-#include <yaml-cpp/yaml.h>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
-
+#include <unistd.h>
 #include "calotypes/CalibrationLog.h"
 #include "calotypes/PlanarGridStructure.h"
 
 using namespace calotypes;
 namespace bfs = boost::filesystem;
 
+void PrintHelp()
+{
+	std::cout << "process_images: Generate detection file from images" << std::endl;
+	std::cout << "Arguments: " << std::endl;
+	std::cout << "[-r rows] Rows in the pattern" << std::endl;
+	std::cout << "[-c cols] Columns in the pattern" << std::endl;
+	std::cout << "[-s size] Pattern grid dimension" << std::endl;
+	std::cout << "[-d dir] Directory of images" << std::endl;
+	std::cout << "[-o output] Output file name" << std::endl;
+}
+
 int main( int argc, char** argv )
 {
 
-	if( argc < 2 )
+	unsigned int cbRows = 6, cbCols = 7;
+	double cbDim = 1.0;
+	char c;
+	std::string imageDir( "./" );
+	std::string outputPath( "detections.txt" );
+	
+	while( (c = getopt( argc, argv, "hr:c:s:d:o:")) != -1 )
 	{
-		std::cerr << "Please specify config file path." << std::endl;
-		return -1;
+		switch( c )
+		{
+			case 'h':
+				PrintHelp();
+				return 0;
+			case 'r':
+				cbRows = strtol( optarg, NULL, 10 );
+				break;
+			case 'c':
+				cbCols = strtol( optarg, NULL, 10 );
+				break;
+			case 's':
+				cbDim = strtod( optarg, NULL );
+				break;
+			case 'd':
+				imageDir.assign( optarg );
+				break;
+			case 'o':
+				outputPath.assign( optarg );
+			case '?':
+                return -1;
+            default:
+				std::cerr << "Unrecognized option." << std::endl;
+                return -1;
+		}
 	}
-	
-	std::string configPath( argv[1] );
-	YAML::Node config = YAML::LoadFile( configPath );
-	
-	int cbRows = config["cb_rows"].as<int>();
-	int cbCols = config["cb_cols"].as<int>();
-	double cbDim = config["cb_dim"].as<double>();
+
 	PlanarGridStructure patternGrid( cbRows, cbCols, cbDim );
 	
-	typedef std::vector< std::string > Strings;
-	Strings imagePaths;
-	if( config["images"] )
+	if( !bfs::exists( imageDir ) || !bfs::is_directory( imageDir ) )
 	{
-		imagePaths = config["images"].as< Strings >();
-	}
-	else if( config["image_directory"] )
-	{
-		std::string dir = config["image_directory"].as<std::string>();
-		if( !bfs::exists( dir ) || !bfs::is_directory( dir ) )
-		{
-			throw std::runtime_error( "Invalid directory " + dir );
-		}
-		
-		bfs::directory_iterator iter( dir ), endIter;
-		while( iter != endIter )
-		{
-			bfs::directory_entry entry = *iter;
-			iter++;
-			if( !is_regular_file( entry.path() ) ) { continue; }
-			imagePaths.push_back( entry.path().string() );
-		}
-	}
-	else
-	{
-		std::cout << "Please specify images or image_directory" << std::endl;
-		return -1;
+		throw std::runtime_error( "Invalid directory " + imageDir );
 	}
 	
-	std::string outputPath = config["output_path"].as<std::string>();
+	std::vector< std::string > imagePaths;
+	bfs::directory_iterator iter( imageDir ), endIter;
+	while( iter != endIter )
+	{
+		bfs::directory_entry entry = *iter;
+		iter++;
+		if( !is_regular_file( entry.path() ) ) { continue; }
+		imagePaths.push_back( entry.path().string() );
+	}
+	
 	CalibrationLogWriter writer( outputPath );
 	
 	cv::namedWindow( "images" );
@@ -85,10 +103,12 @@ int main( int argc, char** argv )
 		cv::cornerSubPix( gray, corners, cv::Size(11,11), cv::Size(-1,-1), cspCrit );
 		
 		CameraTrainingData datum;
+		datum.name = path;
+		datum.imageSize = image.size();
 		datum.imagePoints = corners;
 		datum.objectPoints = patternGrid.GetPoints();
 
-		writer.WriteNext( path, image.size(), datum );
+		writer.WriteNext( datum );
 		
 		cv::Mat drawn;
 		cv::drawChessboardCorners( image, patternGrid.GetSize(), corners, true );

@@ -21,8 +21,7 @@ public:
 	CalibrationLogReader( const std::string& path );
 	
 	/*! \brief Retrieve the next training datapoint. Returns success. */
-	bool GetNext( std::string& imagePath, cv::Size& imageSize, 
-				  CameraTrainingData& data );
+	bool GetNext( CameraTrainingData& data );
 	
 private:
 	
@@ -37,8 +36,7 @@ public:
 	CalibrationLogWriter( const std::string& path );
 	
 	/*! \brief Writes a training datapoint to the log. */
-	void WriteNext( const std::string& imagePath, const cv::Size& imageSize, 
-					const CameraTrainingData& data );
+	void WriteNext( const CameraTrainingData& data );
 	
 	std::ofstream log;
 	

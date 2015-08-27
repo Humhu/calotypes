@@ -13,8 +13,7 @@ CalibrationLogReader::CalibrationLogReader( const std::string& path )
 	}
 }
 
-bool CalibrationLogReader::GetNext( std::string& imagePath, cv::Size& imageSize,
-									CameraTrainingData& data )
+bool CalibrationLogReader::GetNext( CameraTrainingData& data )
 {
 	std::string headerLine, objectLine, imageLine;
 	if( !std::getline( log, headerLine ) || 
@@ -41,8 +40,8 @@ bool CalibrationLogReader::GetNext( std::string& imagePath, cv::Size& imageSize,
 		throw std::runtime_error( "Log lines do not have matching number of points." );
 	}
 	
-	imagePath = headerSplits[0];
-	imageSize = cv::Size( std::stoi( headerSplits[1] ), std::stoi( headerSplits[2] ) );
+	data.name = headerSplits[0];
+	data.imageSize = cv::Size( std::stoi( headerSplits[1] ), std::stoi( headerSplits[2] ) );
 	
 	unsigned int numItems = imageSplits.size() / 2;
 	
@@ -74,10 +73,9 @@ CalibrationLogWriter::CalibrationLogWriter( const std::string& path )
 	}
 }
 
-void CalibrationLogWriter::WriteNext( const std::string& imagePath, const cv::Size& imageSize,
-									  const CameraTrainingData& data )
+void CalibrationLogWriter::WriteNext( const CameraTrainingData& data )
 {
-	log << imagePath << " " << imageSize.width << " " << imageSize.height << std::endl;
+	log << data.name << " " << data.imageSize.width << " " << data.imageSize.height << std::endl;
 	
 	unsigned int numItems = data.imagePoints.size();
 	log << data.objectPoints[0].x << " " << data.objectPoints[0].y << " " 

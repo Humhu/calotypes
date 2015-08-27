@@ -10,10 +10,13 @@
 namespace calotypes
 {
 
+template <class Data>
 class RandomDataSelector
-: public DataSelector<CameraTrainingData>
+: public DataSelector<Data>
 {
 public:
+	
+	typedef typename DataSelector<Data>::Dataset Dataset;
 	
 	RandomDataSelector()
 	{

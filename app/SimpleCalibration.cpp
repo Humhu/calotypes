@@ -26,15 +26,13 @@ int main( int argc, char** argv )
 	
 	CameraTrainingData datum;
 	std::vector<CameraTrainingData> data;
-	std::string path;
-	cv::Size imageSize;
-	while( reader.GetNext( path, imageSize, datum ) )
+	while( reader.GetNext( datum ) )
 	{
 		data.push_back( datum );
 	}
 	
 	std::vector<CameraTrainingData> subset;
-	RandomDataSelector selector;
+	RandomCameraDataSelector selector;
 // 	selector.SelectData( data, data.size(), subset );
 	subset = data;
 	
@@ -46,7 +44,7 @@ int main( int argc, char** argv )
 	
 	typedef CrossValidationTask< CameraModel, CameraTrainingData > CameraCV;
 	CameraCV::TrainFunc trainer = boost::bind( &TrainCameraModel, _1, _2,
-											   imageSize, params ); // HACK heh
+											   data[0].imageSize, params ); // HACK heh
 	CameraCV::TestFunc tester = boost::bind( &TestCameraModel, _1, _2 );
 	CameraCV crossValidation( trainer, tester, subset, 4 );
 	

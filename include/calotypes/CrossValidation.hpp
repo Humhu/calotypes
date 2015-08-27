@@ -53,8 +53,8 @@ public:
 	typedef std::vector<Data> Dataset;
 	
 	/*! \brief Training functions take a dataset, assign a model, and return the
-	 * training time error. */
-	typedef boost::function<double (Model&, const Dataset&)> TrainFunc;
+	 * training time error. They may also return just a subset of the training set. */
+	typedef boost::function<double (Model&, Dataset&)> TrainFunc;
 	
 	/*! \brief Testing functions take a model and dataset and return the test
 	 * time error. */
@@ -67,6 +67,7 @@ public:
 		unsigned int foldIndex;
 		double trainingError;
 		double testError;
+		Dataset trainingData;
 		boost::posix_time::time_duration trainingTime;
 	};
 	
@@ -115,6 +116,7 @@ public:
 		results[foldInd].trainingError = trainingError;
 		results[foldInd].testError = testError;
 		results[foldInd].trainingTime = trainingTime;
+		results[foldInd].trainingData = trainSet;
 		return;
 	}
 	
