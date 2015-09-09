@@ -46,6 +46,18 @@ if( OpenCV_VERSION VERSION_EQUAL "3")
 	list(APPEND calotypes_DEFS "-DOPENCV3=1")
 endif()
 
+message( STATUS ${CMAKE_SOURCE_DIR} )
+
+# nanoflann for kernel density estimation
+include( ExternalProject )
+ExternalProject_Add( nanoflann_external
+	GIT_REPOSITORY git@github.com:jlblancoc/nanoflann.git
+	INSTALL_COMMAND make install
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/external/nanoflann/
+)
+set( nanoflann_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/nanoflann/include )
+include_directories( ${nanoflann_INCLUDE_DIR} )
+
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 list(APPEND calotypes_INCLUDES ${EIGEN3_INCLUDE_DIR} )

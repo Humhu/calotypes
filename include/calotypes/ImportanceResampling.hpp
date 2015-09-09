@@ -15,7 +15,7 @@ namespace calotypes
  * to a proposal distribution to approximate a target distribution. */
 template < class Data,
 		   class Engine = boost::random::mt19937,
-		   class Resampler = NaiveWeightedSampling<Engine> >
+		   class Resampler = LowVarianceWeightedSampling<Engine> >
 void ImportanceResample( const std::vector<Data>& samples,
 						 const typename ProbabilityDensityFunction<Data>::Ptr& proposal,
 						 const typename ProbabilityDensityFunction<Data>::Ptr& target,
@@ -23,9 +23,11 @@ void ImportanceResample( const std::vector<Data>& samples,
 {
 	// 1. Calculate resampling weights according to target(x)/proposal(x)
 	std::vector<double> weights( samples.size() );
+// 	std::cout << "weights: " << std::endl;
 	for( unsigned int i = 0; i < samples.size(); i++ )
 	{
 		weights[i] = (*target)( samples[i] ) / (*proposal)( samples[i] );
+// 		std::cout << "\t " << samples[i].name << " (" << weights[i] << ")" << std::endl;
 	}
 	
 	// 2. Resample based on the weights

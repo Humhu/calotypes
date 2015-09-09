@@ -6,10 +6,18 @@
 #include <fstream>
 #include <unistd.h>
 
+#include <boost/circular_buffer.hpp>
+
 #include "calotypes/CrossValidation.hpp"
+
 #include "calotypes/CameraCalibration.h"
+#include "calotypes/DatasetFunctions.hpp"
+#include "calotypes/SubsampleDataSelector.hpp"
+#include "calotypes/GreedyDataSelector.hpp"
+
 #include "calotypes/CalibrationLog.h"
 #include "calotypes/WorkerPool.hpp"
+#include "calotypes/WeightedSamplers.hpp"
 
 using namespace calotypes;
 
@@ -21,15 +29,14 @@ void PrintHelp()
 	std::cout << "[-o outputPath] The output log to write cross-validation stats to" << std::endl;
 	std::cout << "[-k numFolds (4)] The number of folds for cross-validation" << std::endl;
 	std::cout << "[-n numData (30)] Number of images to select from each fold" << std::endl;
-	std::cout << "[-m metric (img)] Distance metric to select with" << std::endl;
+	std::cout << "[-m method (gc)] Curation method [ss, ur, gc]" << std::endl;
 	std::cout << "[-s subsample (1)] Subsampling to apply to data" << std::endl;
 }
 
 int main( int argc, char** argv )
 {
-	
 	std::string configPath, outputPath;
-	std::string metric = "img";
+	std::string method = "gc";
 	unsigned int numFolds = 4;
 	unsigned int numData = 30;
 	unsigned int subsample = 1;
@@ -54,7 +61,7 @@ int main( int argc, char** argv )
 				numData = strtol( optarg, NULL, 10 );
 				break;
 			case 'm':
-				metric.assign( optarg );
+				method.assign( optarg );
 				break;
 			case 's':
 				subsample = strtol( optarg, NULL, 10 );
@@ -67,9 +74,9 @@ int main( int argc, char** argv )
 		}
 	}
 	
-	if( metric != "img" && metric != "pnp" && metric != "random" && metric != "kde")
+	if( method != "ss" && method != "ur" && method != "gc")
 	{
-		std::cerr << "Invalid metric. Must be 'img' 'pnp' or 'random' or 'kde'" << std::endl;
+		std::cerr << "Invalid method. Must be 'subsample (ss), uniform random (ur) or greedy curation (gc)" << std::endl;
 		return -1;
 	}
 	
@@ -110,86 +117,64 @@ int main( int argc, char** argv )
 	WorkerPool pool( 4 );
 	pool.StartWorkers();
 	
-	CameraDataMetric::Ptr dataMetric;
-	CameraDatasetMetric::Ptr datasetMetric;
+	// Construct selection objects
+	CameraModel model( params );
+
+	CameraModel initialModel;
+	std::cout << "Training initial model estimate...";
+	RandomCameraDataSelector randSelector;
+	std::vector<CameraTrainingData> initialData;
+	randSelector.SelectData( data, numData, initialData );
+	TrainCameraModel( initialModel, initialData, data[0].imageSize );
+	std::cout << " complete!" << std::endl;
+
+	std::cout << "Computing data pose estimates...";
+	for( unsigned int i = 0; i < data.size(); i++ )
+	{
+		cv::Mat rvec, tvec;
+		cv::solvePnP( data[i].objectPoints, data[i].imagePoints, initialModel.cameraMatrix,
+					initialModel.distortionCoefficients, rvec, tvec );
+		data[i].pose = Pose3D( tvec, rvec );
+	}
+	std::cout << " complete!" << std::endl;
+	
+	// Switch data selection method
 	CameraDataSelector::Ptr dataSelector;
-	
-	if( metric == "pnp" )
+	if( method == "ss" )
 	{
-		CameraModel initialModel;
-		std::cout << "Training initial model estimate...";
-		RandomCameraDataSelector randSelector;
-		std::vector<CameraTrainingData> initialData;
-		randSelector.SelectData( data, numData, initialData );
-		TrainCameraModel( initialModel, initialData, data[0].imageSize );
-		std::cout << " complete!" << std::endl;
-	
-		std::cout << "Computing data pose estimates...";
-		for( unsigned int i = 0; i < data.size(); i++ )
-		{
-			cv::Mat rvec, tvec;
-			cv::solvePnP( data[i].objectPoints, data[i].imagePoints, initialModel.cameraMatrix,
-						initialModel.distortionCoefficients, data[i].rotVec, data[i].transVec );	
-		}
-		std::cout << " complete!" << std::endl;
-		
-		dataMetric = std::make_shared< PoseDistance >( initialModel );
-		datasetMetric = std::make_shared<AverageCameraDatasetMetric>( dataMetric );
-		dataSelector = std::make_shared< GreedyDataSelector<CameraTrainingData> >( datasetMetric );
+		// TODO Implement subsampling baseline
+		unsigned int subsampleStep = 3;
+		dataSelector = std::make_shared< SubsampleDataSelector<CameraTrainingData> >( subsampleStep );
 	}
-	else if( metric == "img" )
-	{
-		std::cout << "Computing 2d image features...";
-		for( unsigned int i = 0; i < data.size(); i++ )
-		{
-			Compute2DFeatures( data[i].imagePoints, data[i].pointFeats );
-		}
-		std::cout << " complete!" << std::endl;
-		
-		dataMetric = std::make_shared< ImageFeatureDistance >();
-		datasetMetric = std::make_shared<AverageCameraDatasetMetric>( dataMetric );
-		dataSelector = std::make_shared< GreedyDataSelector<CameraTrainingData> >( datasetMetric );
-	}
-	else if( metric == "kde" )
-	{
-		CameraModel initialModel;
-		std::cout << "Training initial model estimate...";
-		RandomCameraDataSelector randSelector;
-		std::vector<CameraTrainingData> initialData;
-		randSelector.SelectData( data, numData, initialData );
-		TrainCameraModel( initialModel, initialData, data[0].imageSize );
-		std::cout << " complete!" << std::endl;
-	
-		std::cout << "Computing data pose estimates...";
-		for( unsigned int i = 0; i < data.size(); i++ )
-		{
-			cv::Mat rvec, tvec;
-			cv::solvePnP( data[i].objectPoints, data[i].imagePoints, initialModel.cameraMatrix,
-						initialModel.distortionCoefficients, data[i].rotVec, data[i].transVec );	
-		}
-		std::cout << " complete!" << std::endl;
-		dataMetric = std::make_shared< PoseDistance >( initialModel );
-	}
-	else if( metric == "random" )
+	else if( method == "ur" )
 	{
 		dataSelector = std::make_shared< RandomDataSelector<CameraTrainingData> >();
 	}
-
-	std::cout << "Performing " << numFolds << "-fold cross validation..." << std::endl;
-	CameraCV::TestFunc tester = boost::bind( &TestCameraModel, _1, _2 );
-	
-	CameraCV::TrainFunc trainer;
-	if( metric == "kde" )
+	else if( method == "gc" )
 	{
-		trainer = boost::bind( &ImportanceTrainCameraModel, _1, _2,
-						   data[0].imageSize, numData, dataMetric, params ); // HACK heh
+		// Unity weights
+		KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >();
+		// TODO Choose std deviation for kernel
+		KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
+			std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, 1.0 );
+		DatasetFunction<CameraTrainingData>::Ptr ucsd = 
+			std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel );
+			
+		dataSelector =
+			std::make_shared< GreedyDataSelector<CameraTrainingData> >( ucsd );
 	}
 	else
 	{
-	trainer = boost::bind( &SubsetTrainCameraModel, _1, _2,
-						   data[0].imageSize, boost::ref(*dataSelector), 
-						   numData, params ); // HACK heh
+		std::cerr << "Invalid method!" << std::endl;
+		exit( -1 );
 	}
+		
+	CameraCV::TrainFunc trainer = 
+		boost::bind( &SubsetTrainCameraModel, _1, _2, data[0].imageSize, 
+					 boost::ref(*dataSelector), numData, params ); // HACK heh
+	
+	CameraCV::TestFunc tester = boost::bind( &TestCameraModel, _1, _2 );
+					 
 	
 	CameraCV crossValidation( trainer, tester, data, numFolds );
 	for( unsigned int i = 0; i < numFolds; i++ )

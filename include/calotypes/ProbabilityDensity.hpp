@@ -21,6 +21,28 @@ public:
 	/*! \brief Return whether the PDF is normalized or not. */
 	virtual bool IsNormalized() const = 0;
 	
+	/*! \brief Returns the joint probability assuming independent samples. */
+	virtual double operator()( const std::vector<Data>& data ) const
+	{
+		double acc = 1.0;
+		for( unsigned int i = 0; i < data.size(); i++ )
+		{
+			acc *= (*this)( data[i] );
+		}
+		return acc;
+	}
+	
+	/*! \brief Returns the log probability of independent samples. */
+	virtual double LogProbability( const std::vector<Data>& data ) const
+	{
+		double acc = 0;
+		for( unsigned int i = 0; i < data.size(); i++ )
+		{
+			acc += std::log( (*this)( data[i] ) );
+		}
+		return acc;
+	}
+	
 };
 
 template <class Data>
@@ -41,5 +63,5 @@ private:
 	
 	double val;
 };
-	
+
 }

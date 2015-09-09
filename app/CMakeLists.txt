@@ -10,6 +10,11 @@ target_link_libraries( threaded_calibration
 					   calotypes
 					   ${calotypes_LIBS} )
 					   
+add_executable( holdout_calibration HoldoutCalibration.cpp )
+target_link_libraries( holdout_calibration 
+					   calotypes
+					   ${calotypes_LIBS} )
+					   
 add_executable( process_images ProcessImages.cpp )
 target_link_libraries( process_images
 					   calotypes
