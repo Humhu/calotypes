@@ -179,7 +179,7 @@ int main( int argc, char** argv )
 	if( method == "ss" )
 	{
 		// TODO Implement subsampling baseline
-		unsigned int subsamplePeriod = 3;
+		unsigned int subsamplePeriod = 30;
 		dataSelector = std::make_shared< SubsampleDataSelector<CameraTrainingData> >( subsamplePeriod );
 	}
 	else if( method == "ur" )
@@ -188,7 +188,8 @@ int main( int argc, char** argv )
 	}
 	else if( method == "gc" )
 	{
-		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 10 );
+		dataSelector = std::make_shared< GreedyDataSelector<CameraTrainingData> >( ucsd );
+// 		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 10 );
 	}
 	else
 	{
