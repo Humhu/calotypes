@@ -25,12 +25,13 @@ void PrintHelp()
 {
 	std::cout << "threaded_calibration: Perform cross-validated camera calibration" << std::endl;
 	std::cout << "Arguments:" << std::endl;
-	std::cout << "[-d datalogPath] The path to a text file containing the detected corners" << std::endl;
-	std::cout << "[-o outputPath] The output log to write cross-validation stats to" << std::endl;
-	std::cout << "[-k numFolds (4)] The number of folds for cross-validation" << std::endl;
-	std::cout << "[-n numData (30)] Number of images to select from each fold" << std::endl;
-	std::cout << "[-m method (gc)] Curation method [ss, ur, gc]" << std::endl;
+	std::cout << "[-d datalog path] The path to a text file containing the detected corners" << std::endl;
+	std::cout << "[-k num folds (4)] The number of folds for cross-validation" << std::endl;
+	std::cout << "[-n num data (30)] Number of images to select from each fold" << std::endl;
+	std::cout << "[-m method (gc)] Curation method: subsample (ss), uniform random (ur), or greedy curation (gc)" << std::endl;
 	std::cout << "[-s subsample (1)] Subsampling to apply to data" << std::endl;
+	std::cout << "[-b kernel standard deviation (0)] Gaussian kernel standard deviation (0 means auto)" << std::endl;
+	std::cout << "[-o outputPath (output.txt)] Output file path" << std::endl;
 }
 
 int main( int argc, char** argv )
@@ -41,7 +42,8 @@ int main( int argc, char** argv )
 	unsigned int numData = 30;
 	unsigned int subsample = 1;
 	char c;
-	while( (c = getopt( argc, argv, "hd:o:k:n:m:s:")) != -1 )
+	double standardDev = 1.0;
+	while( (c = getopt( argc, argv, "hd:o:k:n:m:s:b:")) != -1 )
 	{
 		switch( c )
 		{
@@ -65,6 +67,9 @@ int main( int argc, char** argv )
 				break;
 			case 's':
 				subsample = strtol( optarg, NULL, 10 );
+				break;
+			case 'b':
+				standardDev= strtod( optarg, NULL );
 				break;
 			case '?':
                 return -1;
@@ -100,17 +105,19 @@ int main( int argc, char** argv )
 		count++;
 	}
 	
+	// Specify camera model complexity
+	// TODO Do this dynamically somehow
 	CameraTrainingParams params;
 	params.optimizeAspectRatio = true;
 	params.optimizePrincipalPoint = true;
 	params.enableRadialDistortion[0] = true;
 	params.enableRadialDistortion[1] = true;
 	params.enableRadialDistortion[2] = true;
-	params.enableRationalDistortion[0] = true;
-	params.enableRationalDistortion[1] = true;
-	params.enableRationalDistortion[2] = true;
+	params.enableRationalDistortion[0] = false;
+	params.enableRationalDistortion[1] = false;
+	params.enableRationalDistortion[2] = false;
 	params.enableTangentialDistortion = true;
-	params.enableThinPrism = true;
+	params.enableThinPrism = false;
 	
 	typedef CrossValidationTask< CameraModel, CameraTrainingData > CameraCV;
 	
@@ -156,7 +163,7 @@ int main( int argc, char** argv )
 		KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >();
 		// TODO Choose std deviation for kernel
 		KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
-			std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, 1.0 );
+			std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, standardDev);
 		DatasetFunction<CameraTrainingData>::Ptr ucsd = 
 			std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel );
 			

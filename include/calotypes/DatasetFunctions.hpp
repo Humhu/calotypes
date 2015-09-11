@@ -87,16 +87,31 @@ public:
 				acc += kernel->Evaluate( data[i], data[j] );
 			}
 		}
-		// diagonal elements are 0
-		unsigned int N = data.size();
-		double origDCS = std::log( 2*acc / ( N*N ) );
-		
+		acc *= 2;
 		for( unsigned int i = 0; i < data.size(); i++ )
 		{
-			acc += kernel->Evaluate( added, data[i] );
+			acc += kernel->Evaluate( data[i], data[i] );
 		}
+		
+		// diagonal elements are 0
+		unsigned int N = data.size();
+		double origDCS = std::log( acc / ( N*N ) );
+		
+		double addedAcc = 0;
+		for( unsigned int i = 0; i < data.size(); i++ )
+		{
+			addedAcc += kernel->Evaluate( added, data[i] );
+		}
+		addedAcc *= 2;
+		addedAcc += kernel->Evaluate( added, added );
+		addedAcc += acc;
+		
 		N = N+1;
-		double addedDCS = std::log( 2*acc / ( N*N ) );
+		double addedDCS = std::log( addedAcc / ( N*N ) );
+		
+		Dataset cop( data );
+		cop.push_back( added );
+		
 		return addedDCS - origDCS;
 	}
 

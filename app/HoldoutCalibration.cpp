@@ -2,6 +2,7 @@
 #include <yaml-cpp/yaml.h>
 #include <boost/foreach.hpp>
 #include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <Eigen/Dense>
 #include <fstream>
 #include <unistd.h>
@@ -16,16 +17,20 @@
 #include "calotypes/KernelDensityEstimation.hpp"
 
 using namespace calotypes;
+namespace btime = boost::posix_time;
 
 void PrintHelp()
 {
 	std::cout << "holdout_calibration: Perform holdout camera calibration" << std::endl;
 	std::cout << "Arguments:" << std::endl;
-	std::cout << "[-d trainPath] The path to a text file containing the training detections" << std::endl;
-	std::cout << "[-t testPath] The path to a text file containing the test detections" << std::endl;
-	std::cout << "[-n numData (30)] Number of images to select for training" << std::endl;
-	std::cout << "[-m method (gc)] Curation method [ss, ur, gc]" << std::endl;
+	std::cout << "[-d train path] The path to a text file containing the training detections" << std::endl;
+	std::cout << "[-t test path] The path to a text file containing the test detections" << std::endl;
+	std::cout << "[-n num data (30)] Number of images to select for training" << std::endl;
+	std::cout << "[-m method (gc)] Curation method: subsample (ss), uniform random (ur), or greedy curation (gc)" << std::endl;
 	std::cout << "[-s subsample (1)] Subsampling to apply to data" << std::endl;
+	std::cout << "[-b kernel SD (1.0)] Gaussian kernel standard deviation" << std::endl;
+	std::cout << "[-o outputPath (output.txt)] Output file path" << std::endl;
+
 }
 
 // TODO Switch to getopt_long to avoid confusion in train/test flag
@@ -33,11 +38,13 @@ int main( int argc, char** argv )
 {
 	
 	std::string trainPath, testPath;
+	std::string outputPath = "output.txt";
 	std::string method = "gc";
 	unsigned int numData = 30;
 	unsigned int subsample = 1;
 	char c;
-	while( (c = getopt( argc, argv, "hd:t:n:m:s:")) != -1 )
+	double standardDev = 1.0;
+	while( (c = getopt( argc, argv, "hd:t:n:m:s:b:o:")) != -1 )
 	{
 		switch( c )
 		{
@@ -58,6 +65,12 @@ int main( int argc, char** argv )
 				break;
 			case 's':
 				subsample = strtol( optarg, NULL, 10 );
+				break;
+			case 'b':
+				standardDev= strtod( optarg, NULL );
+				break;
+			case 'o':
+				outputPath.assign( optarg );
 				break;
 			case '?':
                 return -1;
@@ -93,7 +106,26 @@ int main( int argc, char** argv )
 		count++;
 	}
 	
+	// boost filesystem gives random access only
 	std::sort( trainData.begin(), trainData.end(), CompareDataName );
+	
+	// Open output log and print header
+	std::ofstream outputLog( outputPath );
+	if( !outputLog.is_open() )
+	{
+		std::cerr << "Could not open output log at " << outputPath << std::endl;
+		return -1;
+	}
+	
+	btime::ptime now = btime::microsec_clock::local_time();
+	outputLog << "calibration time: " << btime::to_simple_string( now ) << std::endl;
+	outputLog << "training path: " << trainPath << std::endl;
+	outputLog << "test path: " << testPath << std::endl;
+	outputLog << "training budget: " << numData << std::endl;
+	outputLog << "dataset subsample: " << subsample << std::endl;
+	outputLog << "method: " << method << std::endl;
+	outputLog << "kernel sd: " << standardDev << std::endl;
+	outputLog << std::endl;
 	
 	// Specify camera model complexity
 	// TODO Do this dynamically somehow
@@ -117,8 +149,11 @@ int main( int argc, char** argv )
 	RandomCameraDataSelector randSelector;
 	std::vector<CameraTrainingData> initialData;
 	randSelector.SelectData( trainData, numData, initialData );
-	TrainCameraModel( initialModel, initialData, trainData[0].imageSize );
+	TrainCameraModel( initialModel, initialData, trainData[0].imageSize ); // TODO Train with params here?
 	std::cout << " complete!" << std::endl;
+	
+	outputLog << "initial model: " << std::endl;
+	outputLog << initialModel << std::endl;
 
 	std::cout << "Computing data pose estimates...";
 	for( unsigned int i = 0; i < trainData.size(); i++ )
@@ -129,6 +164,15 @@ int main( int argc, char** argv )
 		trainData[i].pose = Pose3D( tvec, rvec );
 	}
 	std::cout << " complete!" << std::endl;
+	
+	// Cauchy-Schwarz objects
+	// TODO non-unity weights
+	KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >();
+	// TODO Choose std deviation for kernel
+	KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
+		std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, standardDev );
+	DatasetFunction<CameraTrainingData>::Ptr ucsd = 
+		std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel );
 	
 	// Switch data selection method
 	CameraDataSelector::Ptr dataSelector;
@@ -144,16 +188,7 @@ int main( int argc, char** argv )
 	}
 	else if( method == "gc" )
 	{
-		// Unity weights
-		KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >();
-		// TODO Choose std deviation for kernel
-		KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
-			std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, 1.0 );
-		DatasetFunction<CameraTrainingData>::Ptr ucsd = 
-			std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel );
-			
-		dataSelector =
-			std::make_shared< GreedyDataSelector<CameraTrainingData> >( ucsd );
+		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 10 );
 	}
 	else
 	{
@@ -166,6 +201,7 @@ int main( int argc, char** argv )
 		
 	double trainingError = TestCameraModel( model, trainData );
 	double testError = TestCameraModel( model, testData );
+	double csd = (*ucsd)( trainData );
 	
 	std::cout << "Training on: " << std::endl;
 	for( unsigned int i = 0; i < trainData.size(); i++ )
@@ -174,6 +210,21 @@ int main( int argc, char** argv )
 	}
 	
 	std::cout << "Test/training error: " << testError << " " << trainingError << std::endl;
+	
+	// Print final output results
+	outputLog << "final model: " << std::endl;
+	outputLog << model << std::endl;
+	
+	outputLog << "training paths: " << std::endl;
+	for( unsigned int i = 0; i < trainData.size(); i++ )
+	{
+		outputLog << trainData[i].name << std::endl;
+	}
+	outputLog << std::endl;
+	
+	outputLog << "training csd: " << csd << std::endl;
+	outputLog << "training error: " << trainingError << std::endl;
+	outputLog << "test error: " << testError << std::endl;
 	
 	return 0;
 }

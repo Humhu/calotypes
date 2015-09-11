@@ -5,7 +5,7 @@
 
 #include <boost/math/distributions/normal.hpp>
 #include <memory>
-#include <nanoflann.hpp>
+// #include <nanoflann.hpp> // TODO Use
 
 namespace calotypes
 {

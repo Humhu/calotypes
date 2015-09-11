@@ -8,7 +8,7 @@ namespace calotypes
 {
 	
 /*! \brief Base interface for functions that operate on pairs of data. It must be
- * that kernel(a,b) = kernel(b,a) and kernel(a,a) = 0 */
+ * that kernel(a,b) = kernel(b,a) */
 template <class Data>
 class KernelFunction
 {
@@ -72,7 +72,10 @@ void ComputeGramMatrix( const KernelFunction<Data>& kernel, const std::vector<Da
 	unsigned int N = data.size();
 	K = Eigen::MatrixXf( N, N );
 	
-	for( unsigned int i = 0; i < N; i++ ) { K(i,i) = 0; }
+	for( unsigned int i = 0; i < N; i++ ) 
+	{ 
+		K(i,i) = kernel.Evaluate( data[i], data[i] ); 
+	}
 	for( unsigned int i = 0; i < N-1; i++ )
 	{
 		for( unsigned int j = i+1; j < N; j++ )

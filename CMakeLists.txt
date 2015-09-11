@@ -32,6 +32,7 @@ find_package( Boost REQUIRED
 					   system 
 					   random
 					   thread
+					   date_time
 )
 include_directories( ${Boost_INCLUDE_DIRS} )
 list(APPEND calotypes_LIBS ${Boost_LIBRARIES} )
@@ -49,14 +50,14 @@ endif()
 message( STATUS ${CMAKE_SOURCE_DIR} )
 
 # nanoflann for kernel density estimation
-include( ExternalProject )
-ExternalProject_Add( nanoflann_external
-	GIT_REPOSITORY git@github.com:jlblancoc/nanoflann.git
-	INSTALL_COMMAND make install
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/external/nanoflann/
-)
-set( nanoflann_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/nanoflann/include )
-include_directories( ${nanoflann_INCLUDE_DIR} )
+# include( ExternalProject )
+# ExternalProject_Add( nanoflann_external
+# 	GIT_REPOSITORY git@github.com:jlblancoc/nanoflann.git
+# 	INSTALL_COMMAND make install
+# 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_SOURCE_DIR}/external/nanoflann/
+# )
+# set( nanoflann_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/nanoflann/include )
+# include_directories( ${nanoflann_INCLUDE_DIR} )
 
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})

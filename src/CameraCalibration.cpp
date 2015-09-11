@@ -77,10 +77,24 @@ std::ostream& operator<<( std::ostream& os, const CameraModel& model )
 	Eigen::Map< const Eigen::MatrixXd > cameraMap( model.cameraMatrix.ptr<double>(), 3, 3 );
 	Eigen::Map< const Eigen::MatrixXd > distortionMap( model.distortionCoefficients.ptr<double>(),
 												 model.distortionCoefficients.total(), 1 );
-	os << "fx: " << cameraMap(0,0) << " fy: " << cameraMap(1,1) 
-	// TODO These are actually different column/row major, but hack it for now
-	   << " px: " << cameraMap(2,0) << " py: " << cameraMap(2,1) << std::endl;
-	os << "distortion: " << distortionMap.transpose();
+	os << "fx: " << cameraMap(0,0) << std::endl;
+	os << "fy: " << cameraMap(1,1) << std::endl;
+	os << "px: " << cameraMap(2,0) << std::endl;
+	os << "py: " << cameraMap(2,1) << std::endl;
+	os << "aspect ratio optimized: " << model.trainingParams.optimizeAspectRatio << std::endl;
+	os << "optimize principal point: " << model.trainingParams.optimizePrincipalPoint << std::endl;
+	os << "radial distortion k1: " << distortionMap(0) << std::endl;
+	os << "radial distortion k2: " << distortionMap(1) << std::endl;
+	os << "radial distortion k3: " << (model.trainingParams.enableRadialDistortion[2] ? distortionMap(4) : 0.0) << std::endl;
+	os << "radial distortion k4: " << (model.trainingParams.enableRationalDistortion[0] ? distortionMap(5) : 0.0) << std::endl;
+	os << "radial distortion k5: " << (model.trainingParams.enableRationalDistortion[1] ? distortionMap(6) : 0.0) << std::endl;
+	os << "radial distortion k6: " << (model.trainingParams.enableRationalDistortion[2] ? distortionMap(7) : 0.0) << std::endl;
+	os << "tangential distortion p1: " << distortionMap(2) << std::endl;
+	os << "tangential distortion p2: " << distortionMap(3) << std::endl;
+	os << "thin lens s1: " << (model.trainingParams.enableThinPrism ? distortionMap(8) : 0.0) << std::endl;
+	os << "thin lens s2: " << (model.trainingParams.enableThinPrism ? distortionMap(9) : 0.0) << std::endl;
+	os << "thin lens s3: " << (model.trainingParams.enableThinPrism ? distortionMap(10) : 0.0) << std::endl;
+	os << "thin lens s4: " << (model.trainingParams.enableThinPrism ? distortionMap(11) : 0.0) << std::endl;	
 	return os;
 }
 
@@ -91,6 +105,22 @@ CameraTrainingParams::CameraTrainingParams()
 	enableTangentialDistortion( false ), enableThinPrism( false )
 	{}
 
+std::ostream& operator<<( std::ostream& os, const CameraTrainingParams& params )
+{
+	os << "aspect ratio: " << params.optimizeAspectRatio << std::endl;
+	os << "principal point: " << params.optimizePrincipalPoint << std::endl;
+	os << "radial distortion k1: " << params.enableRadialDistortion[0] << std::endl;
+	os << "radial distortion k2: " << params.enableRadialDistortion[1] << std::endl;
+	os << "radial distortion k3: " << params.enableRadialDistortion[2] << std::endl;
+	os << "radial distortion k4: " << params.enableRationalDistortion[0] << std::endl;
+	os << "radial distortion k5: " << params.enableRationalDistortion[1] << std::endl;
+	os << "radial distortion k6: " << params.enableRationalDistortion[2] << std::endl;
+	os << "tangential distortion: " << params.enableTangentialDistortion << std::endl;
+	os << "thin prism: " << params.enableThinPrism << std::endl;
+	return os;
+}
+
+	
 // double ImportanceTrainCameraModel( CameraModel& model, std::vector<CameraTrainingData>& data,
 // 								   const cv::Size& imgSize, unsigned int subsetSize,
 // 								   CameraDataMetric::Ptr dataMetric, CameraTrainingParams params )

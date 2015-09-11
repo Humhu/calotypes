@@ -61,6 +61,7 @@ namespace calotypes
 		
 		CameraTrainingParams();
 	};
+	std::ostream& operator<<( std::ostream& os, const CameraTrainingParams& params );
 	
 	/*! \brief Represents a pinhole camera model. Wraps the various
 	 * degrees of correction models that OpenCV supports. */
