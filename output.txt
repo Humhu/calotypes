@@ -1,0 +1,28 @@
+calibration time: 2015-Sep-11 18:28:52.548414
+training path: /home/humphreh/Documents/abb_experiments/calotypes/data/pseye045_wide/training_manual_1.det
+test path: /home/humphreh/Documents/abb_experiments/calotypes/data/pseye045_wide/validation.det
+training budget: 50
+dataset subsample: 1
+method: gc
+kernel sd: 0.01
+
+initial model: 
+fx: 573.204
+fy: 573.204
+px: 319.5
+py: 239.5
+aspect ratio optimized: 0
+optimize principal point: 0
+radial distortion k1: 0
+radial distortion k2: 0
+radial distortion k3: 0
+radial distortion k4: 0
+radial distortion k5: 0
+radial distortion k6: 0
+tangential distortion p1: 0
+tangential distortion p2: 0
+thin lens s1: 0
+thin lens s2: 0
+thin lens s3: 0
+thin lens s4: 0
+

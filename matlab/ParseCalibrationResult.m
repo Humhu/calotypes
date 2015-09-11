@@ -76,5 +76,6 @@ result.testError            = str2double( StripLine( fgetl( fid ) ) );
         model.s4 = str2double( StripLine( fgetl( fid ) ) );
     end
 
-end
+fclose( fid );
 
+end

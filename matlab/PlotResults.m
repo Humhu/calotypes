@@ -14,8 +14,12 @@ budgetLabels = cellfun(@num2str, num2cell(budgets), 'UniformOutput', false);
 %% Bar plot of test MSE for all trials
 % TODO Average over cameras
 figure;
-errStdDevs = sqrt( [urVarTestErr, ssVarTestErr, gcVarTestErr] );
-[mseBars, mseVarLines] = barwitherr( errStdDevs, [urMeanTestErr, ssMeanTestErr, gcMeanTestErr] );
+errStdDevs = sqrt( [mean(urManualErrVars); mean(ssManualErrVars); mean(gcManualErrVars)] );
+errMeans = [mean(urManualErrMeans); mean(ssManualErrMeans); mean(gcManualErrMeans)];
+errStdDevs(2,1) = 0;
+errMeans(2,1) = 0;
+
+[mseBars, mseVarLines] = barwitherr( errStdDevs', errMeans' );
 legend( 'ur', 'ss', 'gc', 'location', 'best' );
 set( gca, 'xticklabel', budgetLabels );
 xlabel( 'Training Budget $B$' );

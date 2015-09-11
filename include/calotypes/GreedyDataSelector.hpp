@@ -35,6 +35,13 @@ public:
 		std::vector<unsigned int> bestInds;
 		while( subset.size() < subsetSize && !available.empty() )
 		{
+			
+// 			std::cout << "Subset is currently: " << std::endl;
+// 			for( unsigned int i = 0; i < subset.size(); i++ )
+// 			{
+// 				std::cout << subset[i].name << " " << subset[i].pose.ToVector().transpose() << std::endl;
+// 			}
+			
 			bestDelta.clear();
 			bestInds.clear();
 			
@@ -45,12 +52,16 @@ public:
 			for( unsigned int i = 1; i < available.size(); i++ )
 			{
 				current = metric->delta( subset, available[i] );
+				
+// 				std::cout << "delta for " << available[i].name << " is " << current << std::endl;
+				
 				if( current > bestDelta[0] ) { continue; }
 				// if current == bestDelta[0], we accumulate indices
 				if( current < bestDelta[0] )
 				{
 					bestDelta.clear();
 					bestInds.clear();
+// 					std::cout << "New best delta for ind " << i << std::endl;
 				}
 				
 				bestDelta.push_back( current );
@@ -70,7 +81,7 @@ public:
 // 			if( bestDelta[0] >= 0 ) { return; }
 			
 			subset.push_back( available[ bestInds[0] ] );
-			available.erase( available.begin() + bestInds[0] );
+// 			available.erase( available.begin() + bestInds[0] );
 		}
 	}
 private:

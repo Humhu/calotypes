@@ -40,6 +40,8 @@ Pose3D::VectorType Pose3D::ToVector() const
 	Eigen::Quaterniond q( transform.rotation() );
 	Eigen::Vector3d aa = q.vec();
 	double angle = std::acos( q.w() )*2;
+	if( angle > M_PI ) { angle = angle - 2*M_PI; }
+	if( angle < -M_PI ) { angle = angle + 2*M_PI; }
 	aa *= angle;
 	vec.block<3,1>(3,0) = aa;
 	return vec;

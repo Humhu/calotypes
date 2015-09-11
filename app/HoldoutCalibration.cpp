@@ -207,7 +207,7 @@ int main( int argc, char** argv )
 	std::cout << "Training on: " << std::endl;
 	for( unsigned int i = 0; i < trainData.size(); i++ )
 	{
-		std::cout << "\t" << trainData[i].name << std::endl;
+		std::cout << "\t" << trainData[i].name << " " << trainData[i].pose.ToVector().transpose() << std::endl;
 	}
 	
 	std::cout << "Test/training error: " << testError << " " << trainingError << std::endl;

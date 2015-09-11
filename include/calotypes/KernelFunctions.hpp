@@ -67,7 +67,7 @@ protected:
  * Assumes kernel(a,a) = 0 and kernel(a,b) = kernel(b,a). */
 template <class Data>
 void ComputeGramMatrix( const KernelFunction<Data>& kernel, const std::vector<Data>& data,
-						const Eigen::MatrixXf& K )
+						Eigen::MatrixXf& K )
 {
 	unsigned int N = data.size();
 	K = Eigen::MatrixXf( N, N );
