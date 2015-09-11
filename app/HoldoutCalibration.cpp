@@ -167,7 +167,9 @@ int main( int argc, char** argv )
 	
 	// Cauchy-Schwarz objects
 	// TODO non-unity weights
-	KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >();
+	Eigen::Matrix<double,6,6> weights = Eigen::Matrix<double,6,6>::Identity();
+	weights.block<3,3>(0,0) *= 10;
+	KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >( weights );
 	// TODO Choose std deviation for kernel
 	KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
 		std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, standardDev );
@@ -209,6 +211,10 @@ int main( int argc, char** argv )
 	{
 		std::cout << "\t" << trainData[i].name << " " << trainData[i].pose.ToVector().transpose() << std::endl;
 	}
+	
+	Eigen::MatrixXf K;
+	ComputeGramMatrix<CameraTrainingData>( *gaussianKernel, trainData, K );
+	std::cout << K << std::endl;
 	
 	std::cout << "Test/training error: " << testError << " " << trainingError << std::endl;
 	
