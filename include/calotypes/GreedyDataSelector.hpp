@@ -81,7 +81,7 @@ public:
 // 			if( bestDelta[0] >= 0 ) { return; }
 			
 			subset.push_back( available[ bestInds[0] ] );
-// 			available.erase( available.begin() + bestInds[0] );
+			available.erase( available.begin() + bestInds[0] );
 		}
 	}
 private:

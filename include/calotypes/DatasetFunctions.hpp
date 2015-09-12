@@ -45,8 +45,8 @@ public:
 	typedef std::vector<Data> Dataset;
 	
 	// Give the kernel used in the KDE
-	UniformCauchySchwarzDivergence( typename Kernel::Ptr& k ) 
-	: kernel( k ) {}
+	UniformCauchySchwarzDivergence( typename Kernel::Ptr& k, double bandwidth = 1.0 ) 
+	: kernel( k ), hr( 1.0 / bandwidth ) {}
 	
 	virtual double operator()( const Dataset& data ) const
 	{
@@ -57,14 +57,14 @@ public:
 		{
 			for( unsigned int j = i+1; j < data.size(); j++ )
 			{
-				acc += kernel->Evaluate( data[i], data[j] );
+				acc += Evaluate( data[i], data[j] );
 			}
 		}
 		acc *= 2;
 		
 		for( unsigned int i = 0; i < data.size(); i++ )
 		{
-			acc += kernel->Evaluate( data[i], data[i] );
+			acc += Evaluate( data[i], data[i] );
 		}
 		
 		return std::log( acc / ( data.size()*data.size() ) );
@@ -84,13 +84,13 @@ public:
 		{
 			for( unsigned int j = i+1; j < data.size(); j++ )
 			{
-				acc += kernel->Evaluate( data[i], data[j] );
+				acc += Evaluate( data[i], data[j] );
 			}
 		}
 		acc *= 2;
 		for( unsigned int i = 0; i < data.size(); i++ )
 		{
-			acc += kernel->Evaluate( data[i], data[i] );
+			acc += Evaluate( data[i], data[i] );
 		}
 		
 		// diagonal elements are 0
@@ -100,10 +100,10 @@ public:
 		double addedAcc = 0;
 		for( unsigned int i = 0; i < data.size(); i++ )
 		{
-			addedAcc += kernel->Evaluate( added, data[i] );
+			addedAcc += Evaluate( added, data[i] );
 		}
 		addedAcc *= 2;
-		addedAcc += kernel->Evaluate( added, added );
+		addedAcc += Evaluate( added, added );
 		addedAcc += acc;
 		
 		N = N+1;
@@ -118,6 +118,12 @@ public:
 private:
 	
 	typename Kernel::Ptr kernel;
+	double hr;
+	
+	double Evaluate( const Data& a, const Data& b ) const
+	{
+		return kernel->Evaluate( kernel->Difference( a, b ) * hr );
+	}
 	
 };
 

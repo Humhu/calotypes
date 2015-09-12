@@ -7,6 +7,9 @@
 #include <fstream>
 #include <unistd.h>
 
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
+
 #include "calotypes/CameraCalibration.h"
 #include "calotypes/DatasetFunctions.hpp"
 
@@ -18,6 +21,7 @@
 
 using namespace calotypes;
 namespace btime = boost::posix_time;
+namespace bacc = boost::accumulators;
 
 void PrintHelp()
 {
@@ -134,7 +138,7 @@ int main( int argc, char** argv )
 	params.optimizePrincipalPoint = true;
 	params.enableRadialDistortion[0] = true;
 	params.enableRadialDistortion[1] = true;
-	params.enableRadialDistortion[2] = true;
+	params.enableRadialDistortion[2] = false;
 	params.enableRationalDistortion[0] = false;
 	params.enableRationalDistortion[1] = false;
 	params.enableRationalDistortion[2] = false;
@@ -170,19 +174,34 @@ int main( int argc, char** argv )
 	Eigen::Matrix<double,6,6> weights = Eigen::Matrix<double,6,6>::Identity();
 	weights.block<3,3>(0,0) *= 10;
 	KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >( weights );
-	// TODO Choose std deviation for kernel
 	KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
 		std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, standardDev );
+	
+	bacc::accumulator_set<double, bacc::features<bacc::tag::variance>> acc;
+	for( unsigned int i = 0; i < trainData.size(); i++ )
+	{
+		for( unsigned int j = 0; j < trainData.size(); j++ )
+		{
+			acc( gaussianKernel->Evaluate( trainData[i], trainData[j] ) );
+		}
+	}
+	std::cout << "Distance variance: " << bacc::variance( acc ) << std::endl;
+	double h = 1.06 * bacc::variance( acc ) * std::pow( numData, -0.2 );
+	std::cout << "Bandwidth: " << h << std::endl;
+	
+	
+	// TODO Choose std deviation for kernel
+
 	DatasetFunction<CameraTrainingData>::Ptr ucsd = 
-		std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel );
+		std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel, h );
 	
 	// Switch data selection method
 	CameraDataSelector::Ptr dataSelector;
 	if( method == "ss" )
 	{
 		// TODO Implement subsampling baseline
-		unsigned int subsamplePeriod = 30;
-		dataSelector = std::make_shared< SubsampleDataSelector<CameraTrainingData> >( subsamplePeriod );
+		double subsampleRatio = 0.75;
+		dataSelector = std::make_shared< SubsampleDataSelector<CameraTrainingData> >( subsampleRatio );
 	}
 	else if( method == "ur" )
 	{
@@ -190,8 +209,8 @@ int main( int argc, char** argv )
 	}
 	else if( method == "gc" )
 	{
-		dataSelector = std::make_shared< GreedyDataSelector<CameraTrainingData> >( ucsd );
-// 		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 10 );
+// 		dataSelector = std::make_shared< GreedyDataSelector<CameraTrainingData> >( ucsd );
+		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 10 );
 	}
 	else
 	{

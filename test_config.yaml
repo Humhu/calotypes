@@ -1,5 +1,5 @@
 cb_rows: 6
 cb_cols: 7
 cb_dim: 0.034925
-output_path: /home/humphreh/Pictures/calib/test_output.log
-image_directory: /home/humphreh/Pictures/calib
+output_path: /home/humphreh/abb_experiments/calibration_study/pseye049-narrow-checkerboard-00/qqvga/detections.log
+image_directory: /home/humphreh/abb_experiments/calibration_study/pseye049-narrow-checkerboard-00/qqvga/images/

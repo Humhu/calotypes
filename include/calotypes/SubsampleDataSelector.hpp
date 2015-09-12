@@ -19,11 +19,13 @@ public:
 	typedef std::shared_ptr<SubsampleDataSelector> Ptr;
 	typedef std::vector<Data> Dataset;
 	
-	SubsampleDataSelector( unsigned int ss ) 
-	: subsample( ss ) {}
+	SubsampleDataSelector( double sr ) 
+	: spanRatio( sr ) {}
 	
 	virtual void SelectData( const Dataset& data, unsigned int subsetSize, Dataset& subset) 
 	{
+		unsigned int subsample = std::floor( (data.size()*spanRatio)/(subsetSize-1) );
+		
 		// Catch case where there is not enough data
 		unsigned int subSize = std::min<double>( subsetSize, std::floor( data.size()/subsample ) );
 		subset.clear();
@@ -47,7 +49,7 @@ public:
 	
 protected:
 	
-	unsigned int subsample;
+	double spanRatio;
 
 };
 	
