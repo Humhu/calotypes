@@ -67,12 +67,12 @@ public:
 			acc += Evaluate( data[i], data[i] );
 		}
 		
-		return std::log( acc / ( data.size()*data.size() ) );
+		return std::log( hr * hr * acc / ( data.size()*data.size() ) );
 	}
 	
 	virtual double operator()( const Eigen::MatrixXf& K ) const
 	{
-		return std::log( K.sum()/( K.rows()*K.cols() ) );
+		return std::log( hr * hr * K.sum()/( K.rows()*K.cols() ) );
 	}
 	
 	virtual double delta( const Dataset& data, const Data& added ) const 
@@ -95,7 +95,7 @@ public:
 		
 		// diagonal elements are 0
 		unsigned int N = data.size();
-		double origDCS = std::log( acc / ( N*N ) );
+		double origDCS = std::log( hr*hr * acc / ( N*N ) );
 		
 		double addedAcc = 0;
 		for( unsigned int i = 0; i < data.size(); i++ )
@@ -107,7 +107,7 @@ public:
 		addedAcc += acc;
 		
 		N = N+1;
-		double addedDCS = std::log( addedAcc / ( N*N ) );
+		double addedDCS = std::log( hr*hr * addedAcc / ( N*N ) );
 		
 		Dataset cop( data );
 		cop.push_back( added );

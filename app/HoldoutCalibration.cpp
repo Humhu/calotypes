@@ -172,7 +172,7 @@ int main( int argc, char** argv )
 	// Cauchy-Schwarz objects
 	// TODO non-unity weights
 	Eigen::Matrix<double,6,6> weights = Eigen::Matrix<double,6,6>::Identity();
-	weights.block<3,3>(0,0) *= 10;
+	weights.block<3,3>(0,0) *= 1;
 	KernelFunction<CameraTrainingData>::Ptr distanceFunc = std::make_shared< PoseKernelFunction >( weights );
 	KernelFunction<CameraTrainingData>::Ptr gaussianKernel = 
 		std::make_shared< GaussianKernelAdaptor<CameraTrainingData> >( distanceFunc, standardDev );
@@ -186,12 +186,9 @@ int main( int argc, char** argv )
 		}
 	}
 	std::cout << "Distance variance: " << bacc::variance( acc ) << std::endl;
-	double h = 1.06 * bacc::variance( acc ) * std::pow( numData, -0.2 );
+	double h = 1.06 * bacc::variance( acc ) * std::pow( trainData.size(), -0.2 );
 	std::cout << "Bandwidth: " << h << std::endl;
 	
-	
-	// TODO Choose std deviation for kernel
-
 	DatasetFunction<CameraTrainingData>::Ptr ucsd = 
 		std::make_shared< UniformCauchySchwarzDivergence<CameraTrainingData> >( gaussianKernel, h );
 	
