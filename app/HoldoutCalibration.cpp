@@ -138,12 +138,12 @@ int main( int argc, char** argv )
 	params.optimizePrincipalPoint = true;
 	params.enableRadialDistortion[0] = true;
 	params.enableRadialDistortion[1] = true;
-	params.enableRadialDistortion[2] = false;
+	params.enableRadialDistortion[2] = true;
 	params.enableRationalDistortion[0] = false;
 	params.enableRationalDistortion[1] = false;
 	params.enableRationalDistortion[2] = false;
 	params.enableTangentialDistortion = true;
-	params.enableThinPrism = false;
+	params.enableThinPrism = true;
 	
 	// Construct selection objects
 	CameraModel model( params );
@@ -207,7 +207,7 @@ int main( int argc, char** argv )
 	else if( method == "gc" )
 	{
 // 		dataSelector = std::make_shared< GreedyDataSelector<CameraTrainingData> >( ucsd );
-		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 10 );
+		dataSelector = std::make_shared< RepeatedGreedyDataSelector<CameraTrainingData> >( ucsd, 50 );
 	}
 	else
 	{
